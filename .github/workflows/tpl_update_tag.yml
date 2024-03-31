@@ -33,6 +33,7 @@ jobs:
 
       - name: Update image tag
         id: update_tag
+        working-directory: k8s-devops
         run: |
           tag=${{ inputs.img-tag }}
           echo "Tag is: $tag"
@@ -55,6 +56,7 @@ jobs:
           sed -i "/backend:/,/tag:/{s/tag:.*/tag: $tag/}" "charts/application/values.yaml"
 
       - uses: EndBug/add-and-commit@v9
+        working-directory: k8s-devops
         with:
           author_name: CI
           author_email: ci@testing.com
