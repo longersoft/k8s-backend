@@ -1,0 +1,20 @@
+name: Code Quality Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  CodeLint:
+    name: Code Lint
+    uses: ./.github/workflows/tpl_code_quality.yml
+  
+  SonarScan:
+    name: Sonar Scan
+    needs: CodeLint
+    permissions: read-all
+    uses: ./.github/workflows/tpl_sonar_scan.yml
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

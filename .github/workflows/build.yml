@@ -1,0 +1,46 @@
+name: Code Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  CodeLint:
+    name: Code Lint
+    uses: ./.github/workflows/tpl_code_quality.yml
+  
+  SonarScan:
+    name: Sonar Scan
+    needs: CodeLint
+    permissions: read-all
+    uses: ./.github/workflows/tpl_sonar_scan.yml
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+  
+  CodeBuild:
+    name: Code Build
+    needs: SonarScan
+    uses: ./.github/workflows/tpl_build_dockerhub.yml
+    with:
+      aws-region: "us-east-2"
+      aws-id: "012345678910"
+      ecr-name: "k8s-backend"
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  
+  UpdateTag:
+    name: Update Tag
+    needs: CodeBuild
+    uses: ./.github/workflows/tpl_update_tag.yml
+    with:
+      img-tag: ${{ needs.CodeBuild.outputs.img_tag }}
+    secrets:
+      DEVOPS_DEPLOY_TOKEN: ${{ secrets.DEVOPS_DEPLOY_TOKEN }}
