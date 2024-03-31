@@ -56,8 +56,8 @@ jobs:
           sed -i "/backend:/,/tag:/{s/tag:.*/tag: $tag/}" "charts/application/values.yaml"
 
       - uses: EndBug/add-and-commit@v9
-        working-directory: k8s-devops
         with:
+          cwd: ./k8s-devops
           author_name: CI
           author_email: ci@testing.com
           committer_name: CI
