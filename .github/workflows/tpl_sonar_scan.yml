@@ -1,0 +1,52 @@
+on:
+  workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: true
+      SONAR_HOST_URL:
+        required: true
+
+jobs:
+  SonarScan:
+    runs-on: ubuntu-latest
+    permissions: read-all
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # - uses: sonarsource/sonarqube-scan-action@master
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #     SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Set up SonarQube Server and Run Analysis
+        run: |
+          SONAR_HOST_URL="http://localhost:9000"
+          SONAR_USERNAME="admin"
+          SONAR_PASSWORD="admin"
+
+          # Start SonarQube Server as a Docker container
+          docker run -d --name sonarqube -p 9000:9000 sonarqube
+
+          # Wait for SonarQube to be up and running
+          sleep 120s  # Adjust the duration as per your SonarQube startup time
+          
+          # Generate temporary token
+          current_timestamp=$(date +%s)
+          expiration_date=$(date -d "+30 days" +%Y-%m-%d)
+          response=$(curl -s -X POST -u ${SONAR_USERNAME}:${SONAR_PASSWORD} "${SONAR_HOST_URL}/api/user_tokens/generate" \
+            -d "name=sonarqube_token_${current_timestamp}" -d "type=GLOBAL_ANALYSIS_TOKEN" -d "expirationDate=$expiration_date")
+          SONAR_TOKEN=$(echo "$response" | jq -r '.token')
+          echo "SonarQube token: ${SONAR_TOKEN}"
+
+          # Create a new SonarQube project
+          PROJECT_KEY="backend"
+          PROJECT_NAME="backend"
+          curl -u ${SONAR_USERNAME}:${SONAR_PASSWORD} -X POST "${SONAR_HOST_URL}/api/projects/create" -d "name=${PROJECT_NAME}" -d "key=${PROJECT_KEY}" -d "project=${PROJECT_NAME}" -d "mainBranch=main"
+
+          # Run SonarQube analysis
+          docker run --rm -v $(pwd):/usr/src --network host sonarsource/sonar-scanner-cli \
+            -Dsonar.host.url=${SONAR_HOST_URL} \
+            -Dsonar.projectKey=${PROJECT_KEY} \
+            -Dsonar.login=${SONAR_TOKEN}

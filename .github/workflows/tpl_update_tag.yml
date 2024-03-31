@@ -1,0 +1,60 @@
+on:
+  workflow_call:
+    secrets:
+      DEVOPS_DEPLOY_TOKEN:
+        required: true
+    inputs:
+      img-tag:
+        type: string
+        required: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  UpdateTag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code from devops repo
+        uses: actions/checkout@v4
+        with:
+          repository: "longersoft/k8s-devops"
+          path: "k8s-devops"
+          fetch-depth: 0
+          ref: main
+          ssh-key: ${{ secrets.DEVOPS_DEPLOY_TOKEN }}
+      
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: GITHUB_OUTPUT
+          path: ${{ github.workspace }}
+
+      - name: Update image tag
+        run: |
+          tag=${{ inputs.img-tag }}
+          echo "Tag is: $tag"
+
+          if [ -z "$tag" ]; then
+            cat ${{ github.workspace }}/GITHUB_OUTPUT_${{ github.run_id }}.out
+
+            while IFS='=' read -r key value; do
+              if [ "$key" = "img_tag" ]; then
+                tag="$value"
+                break
+              fi
+            done < ${{ github.workspace }}/GITHUB_OUTPUT_${{ github.run_id }}.out
+
+            echo "Tag is: $tag"
+          fi
+
+          sed -i "/backend:/,/tag:/{s/tag:.*/tag: $tag/}" "chart/application/values.yaml"
+
+      - uses: EndBug/add-and-commit@v9
+        with:
+          author_name: CI
+          author_email: ci@testing.com
+          committer_name: CI
+          committer_email: ci@testing.com
+          message: "CI: update image tag ${{ inputs.img-tag }}"

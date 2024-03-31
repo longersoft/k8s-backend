@@ -1,0 +1,72 @@
+on:
+  workflow_call:
+    inputs:
+      aws-region:
+        type: string
+        required: false
+      aws-id:
+        type: string
+        required: false
+      ecr-name:
+        type: string
+        required: false
+    secrets:
+      DOCKER_USERNAME:
+        required: true
+      DOCKER_PASSWORD:
+        required: true
+
+jobs:
+  CodeBuild:
+    runs-on: ubuntu-latest
+    outputs:
+      img_tag: ${{ steps.set_tag.outputs.img_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set tag
+        id: set_tag
+        run: |
+          TAG="${GITHUB_SHA::7}"
+          
+          echo "img_tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "TAG=$TAG"
+
+          echo "img_tag=$TAG" > ${{ github.workspace }}/GITHUB_OUTPUT_${{ github.run_id }}.out
+          cat ${{ github.workspace }}/GITHUB_OUTPUT_${{ github.run_id }}.out
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Check image exists
+        run: |
+          response=$(curl -s "https://hub.docker.com/v2/repositories/library/${{ inputs.ecr-name }}/tags/")
+          echo "response=$response"
+          if [[ $response == *"\"message\":\"httperror 404: object not found\""* ]]; then
+            echo "Image ${{ inputs.ecr-name }}:${{ steps.set_tag.outputs.img_tag }} does not exist on Docker Hub."
+          else
+            echo "Image ${{ inputs.ecr-name }}:${{ steps.set_tag.outputs.img_tag }} exists on Docker Hub."
+            exit 1
+          fi
+
+      - name: Build Docker Image
+        run: |
+          docker image prune -a --force --filter "until=24h" > /dev/null 2>&1
+          echo "TAG=${{ steps.set_tag.outputs.img_tag }}"
+          docker build -t ${{ inputs.ecr-name }}:${{ steps.set_tag.outputs.img_tag }} .
+
+      - name: Push Docker image
+        run: |
+          docker tag ${{ inputs.ecr-name }}:${{ steps.set_tag.outputs.img_tag }} ${{ secrets.DOCKER_USERNAME }}/${{ inputs.ecr-name }}:${{ steps.set_tag.outputs.img_tag }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ inputs.ecr-name }}:${{ steps.set_tag.outputs.img_tag }}
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GITHUB_OUTPUT
+          path: |-
+            ${{ github.workspace }}/GITHUB_OUTPUT_${{ github.run_id }}.out
