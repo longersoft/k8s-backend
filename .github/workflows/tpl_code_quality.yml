@@ -21,7 +21,7 @@ jobs:
         
       - name: Lint code
         run: |
-          flake8 . --exclude=*lib/*
+          flake8 . --exclude=*lib/*,*/opt/*
       
       - name: Run tests
         run: |
