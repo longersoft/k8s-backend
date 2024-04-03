@@ -12,7 +12,6 @@ jobs:
   
   SonarScan:
     name: Sonar Scan
-    if: always() #for debug only
     needs: CodeLint
     permissions: read-all
     uses: ./.github/workflows/tpl_sonar_scan.yml

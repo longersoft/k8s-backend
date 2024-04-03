@@ -35,7 +35,8 @@ class TestApp(unittest.TestCase):
             mock_request.json.return_value = {
                 'id': 4, 'title': 'Book 4', 'author': 'Author 4'}
             response = self.client.post(
-                '/books', json={'id': 4, 'title': 'Book 4', 'author': 'Author 4'})
+                '/books',
+                json={'id': 4, 'title': 'Book 4', 'author': 'Author 4'})
             self.assertEqual(response.status_code, 201)
             self.assertEqual(len(books), 4)
 

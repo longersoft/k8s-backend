@@ -15,6 +15,8 @@ permissions:
 jobs:
   UpdateTag:
     runs-on: ubuntu-latest
+    outputs:
+      img_tag: ${{ steps.update_tag.outputs.img_tag }}
     steps:
       - name: Checkout code from devops repo
         uses: actions/checkout@v4
@@ -50,7 +52,7 @@ jobs:
 
             echo "Tag is: $tag"
           fi
-          
+
           echo "img_tag=$tag" >> "$GITHUB_OUTPUT"
 
           sed -i "/backend:/,/tag:/{s/tag:.*/tag: $tag/}" "charts/application/values.yaml"

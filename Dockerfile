@@ -5,8 +5,9 @@ FROM python:3.9-slim AS base
 WORKDIR /app
 
 # Copy only necessary files (requirements.txt and the Flask app) to the working directory
+COPY migrations static templates ./
 COPY requirements.txt ./
-COPY main.py ./
+COPY *.py ./
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
