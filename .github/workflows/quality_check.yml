@@ -13,6 +13,7 @@ jobs:
   SonarScan:
     name: Sonar Scan
     needs: CodeLint
+    if: always() #for debug only
     permissions: read-all
     uses: ./.github/workflows/tpl_sonar_scan.yml
     secrets:

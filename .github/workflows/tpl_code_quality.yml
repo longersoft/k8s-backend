@@ -24,6 +24,5 @@ jobs:
           flake8 . --exclude=*lib/*,*/opt/*
       
       - name: Run tests
-        if: always() #for debug only
         run: |
           pytest *.py
