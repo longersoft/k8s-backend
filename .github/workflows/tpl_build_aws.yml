@@ -60,6 +60,7 @@ jobs:
           docker build -t ${{ inputs.ecr-name }}:${{ steps.set_tag.outputs.img_tag }} .
 
       - name: Push Docker Image
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: |
           aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin ${{ inputs.aws-id }}.dkr.ecr.us-east-2.amazonaws.com
           docker tag ${{ inputs.ecr-name }}:${{ steps.set_tag.outputs.img_tag }} ${{ inputs.aws-id }}.dkr.ecr.us-east-2.amazonaws.com/${{ inputs.ecr-name }}:${{ steps.set_tag.outputs.img_tag }}

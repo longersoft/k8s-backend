@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
@@ -17,7 +19,6 @@ jobs:
   
   SonarScan:
     name: Sonar Scan
-    if: always() #for debug only
     needs: CodeLint
     permissions: read-all
     uses: ./.github/workflows/tpl_sonar_scan.yml
@@ -27,7 +28,6 @@ jobs:
   
   CodeBuild:
     name: Code Build
-    if: always() #for debug only
     needs: SonarScan
     uses: ./.github/workflows/tpl_build_dockerhub.yml
     with:
@@ -41,6 +41,7 @@ jobs:
   UpdateTag:
     name: Update Tag
     needs: CodeBuild
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/tpl_update_tag.yml
     with:
       img-tag: ${{ needs.CodeBuild.outputs.img_tag }}
